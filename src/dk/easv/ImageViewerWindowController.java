@@ -17,6 +17,7 @@ import javafx.fxml.Initializable;
 import javafx.scene.Parent;
 import javafx.scene.control.Button;
 import javafx.scene.control.ChoiceBox;
+import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.stage.FileChooser;
@@ -37,6 +38,8 @@ public class ImageViewerWindowController implements Initializable
     private Button btnStop;
     @FXML
     private ChoiceBox<Integer> chbSeconds;
+    @FXML
+    private Label lblImageName;
     @FXML
     private Parent root;
     @FXML
@@ -128,6 +131,17 @@ public class ImageViewerWindowController implements Initializable
         if (!images.isEmpty())
         {
             imageView.setImage(images.get(currentImageIndex));
+            showImageName();
+        }
+    }
+
+    private void showImageName() {
+        if (!images.isEmpty()) {
+
+            File imageAsFile = new File(images.get(currentImageIndex).getUrl());
+            String imageFileName = imageAsFile.getName();
+
+            lblImageName.setText(imageFileName);
         }
     }
 
