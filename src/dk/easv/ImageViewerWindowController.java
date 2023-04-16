@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.ResourceBundle;
 
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
@@ -40,6 +41,8 @@ public class ImageViewerWindowController implements Initializable
     private ChoiceBox<Integer> chbSeconds;
     @FXML
     private Label lblImageName;
+    @FXML
+    private Label lblImagePixelColors;
     @FXML
     private Parent root;
     @FXML
@@ -113,6 +116,7 @@ public class ImageViewerWindowController implements Initializable
         setSlideShowTaskValueListener(slideShowTask);
 
         slideShowThread = new Thread(slideShowTask);
+        slideShowThread.setDaemon(true);
 
         slideShowThread.start();
     }
@@ -130,6 +134,8 @@ public class ImageViewerWindowController implements Initializable
     {
         if (!images.isEmpty())
         {
+            setPixelColors(images.get(currentImageIndex));
+
             imageView.setImage(images.get(currentImageIndex));
             showImageName();
         }
@@ -143,6 +149,30 @@ public class ImageViewerWindowController implements Initializable
 
             lblImageName.setText(imageFileName);
         }
+    }
+
+    private void setPixelColors(Image image) {
+        Task<Image> pixelColorReaderTask = new PixelColorReaderTask(image);
+
+        Thread pixelColorThread = new Thread(pixelColorReaderTask);
+        pixelColorThread.setDaemon(true);
+
+        setPixelColorListener(pixelColorReaderTask);
+
+        pixelColorThread.start();
+    }
+
+    private void setPixelColorListener(Task<Image> pixelColorReaderTask) {
+        if (pixelColorReaderTask == null) return;
+
+        pixelColorReaderTask.messageProperty().addListener((observable, oldValue, newValue) -> {
+
+            Platform.runLater(() -> {
+
+                lblImagePixelColors.setText(newValue);
+                pixelColorReaderTask.cancel();
+            });
+        });
     }
 
     private void setSlideShowTaskValueListener(Task<Image> slideShowTask) {
