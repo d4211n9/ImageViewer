@@ -1,27 +1,58 @@
 package dk.easv;
 
 import java.io.File;
+import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.ResourceBundle;
+
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.fxml.Initializable;
 import javafx.scene.Parent;
+import javafx.scene.control.Button;
+import javafx.scene.control.ChoiceBox;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.stage.FileChooser;
 import javafx.stage.FileChooser.ExtensionFilter;
 import javafx.stage.Stage;
 
-public class ImageViewerWindowController
+public class ImageViewerWindowController implements Initializable
 {
+    @FXML
+    private Button btnLoad;
+    @FXML
+    private Button btnPrevious;
+    @FXML
+    private Button btnNext;
+    @FXML
+    private Button btnStart;
+    @FXML
+    private Button btnStop;
+    @FXML
+    private ChoiceBox<Integer> chbSeconds;
+    @FXML
+    private Parent root;
+    @FXML
+    private ImageView imageView;
+
+
     private final List<Image> images = new ArrayList<>();
     private int currentImageIndex = 0;
 
-    @FXML
-    Parent root;
+    private Thread slideShowThread;
 
-    @FXML
-    private ImageView imageView;
+    @Override
+    public void initialize(URL location, ResourceBundle resources) {
+        disableSlideShowButtons(true);
+        initializeChoiceBoxSecondsPicker();
+    }
 
     @FXML
     private void handleBtnLoadAction()
@@ -39,6 +70,11 @@ public class ImageViewerWindowController
                 images.add(new Image(f.toURI().toString()));
             });
             displayImage();
+
+            if (!images.isEmpty()) {
+                disableManualSlideShowSwitchButtons(false);
+                switchDisableSlideShowStartStop(false);
+            }
         }
     }
 
@@ -63,11 +99,71 @@ public class ImageViewerWindowController
         }
     }
 
+    @FXML
+    private void handleBtnStartAction(ActionEvent actionEvent) {
+        btnLoad.setDisable(true);
+        switchDisableSlideShowStartStop(true);
+        disableManualSlideShowSwitchButtons(true);
+
+        Task<Image> slideShowTask = new SlideShowTask<>(images, currentImageIndex, chbSeconds.getValue());
+
+        setSlideShowTaskValueListener(slideShowTask);
+
+        slideShowThread = new Thread(slideShowTask);
+
+        slideShowThread.start();
+    }
+
+    @FXML
+    private void handleBtnStopAction(ActionEvent actionEvent) {
+        btnLoad.setDisable(false);
+        switchDisableSlideShowStartStop(false);
+        disableManualSlideShowSwitchButtons(false);
+
+        if (!slideShowThread.isInterrupted()) slideShowThread.interrupt();
+    }
+
     private void displayImage()
     {
         if (!images.isEmpty())
         {
             imageView.setImage(images.get(currentImageIndex));
         }
+    }
+
+    private void setSlideShowTaskValueListener(Task<Image> slideShowTask) {
+        if (slideShowTask == null) return;
+
+        slideShowTask.valueProperty().addListener((observable, oldValue, newValue) -> {
+            handleBtnNextAction();
+        });
+    }
+
+    private void switchDisableSlideShowStartStop(boolean disableStart) {
+        btnStart.setDisable(disableStart);
+        btnStop.setDisable(!disableStart);
+    }
+
+    private void disableManualSlideShowSwitchButtons(boolean disable) {
+        btnPrevious.setDisable(disable);
+        btnNext.setDisable(disable);
+    }
+
+    private void disableSlideShowButtons(boolean disable) {
+        disableManualSlideShowSwitchButtons(disable);
+        btnStart.setDisable(disable);
+        btnStop.setDisable(disable);
+    }
+
+    private void initializeChoiceBoxSecondsPicker() {
+        List<Integer> secondsToPick = new ArrayList<>();
+        secondsToPick.add(1);
+        secondsToPick.add(2);
+        secondsToPick.add(3);
+        secondsToPick.add(4);
+        secondsToPick.add(5);
+
+        chbSeconds.getItems().setAll(secondsToPick);
+        chbSeconds.setValue(1);
     }
 }
